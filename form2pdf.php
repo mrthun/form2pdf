@@ -160,17 +160,6 @@
 			}
 		}
 	}
-
-	function get_the_list($id = '', $the_title = '', $palceholder = '',$content = NULL) {
-		$the_list='<ul id="' . $id . '"><li><p>' . $the_title . '</p><select data-placeholder="' . $placeholder . '">';
-		foreach($content as $content_item) {
-			$the_list .= '<option data-connection="' 
-			. $content['item'] . '" value="' 
-			. $content['value'] . '">' 
-			. $content['name'] . '</options>';
-		}
-		$the_list .= '</select></li></ul>';
-	}
 			
             function debug_add($title, $content)     {
             	array_push($this->debug_out,array($title,$content));
@@ -318,10 +307,10 @@
                 echo '<div><select name="'.$this->db_opt.'[convert]" id="convert"><option value="0"'.($options['convert'] == 0 ? ' selected="selected"' : '').'>No</option><option value="1"'.($options['convert'] == 1 ? ' selected="selected"' : '').'>Yes</option></select></div>';
             }
             function form_id_input() {
-                $options = $this->get_options();
-                
-                echo '<input type="text" id="form_id" name="' . $this->db_opt . '[form_id]" value="' . $options['form_id'] . '" size="25" />';
+            	$options = $this->get_options();
+            	echo $this->select_boxes->create_form_list($options);
             }
+			
             function version_select() {
                 $options = $this->get_options();
                 
@@ -382,6 +371,22 @@
     	public function toJSON(){
         	return json_encode($this);
     	}
+		
+		public function create_form_list($options) {
+			$options;
+			$the_list='<ul id="forms"><li><p>Select the form from which you want to create PDF files.</p><select data-placeholder="Select a form">';
+			$all_forms = ninja_forms_get_all_forms();
+			foreach($all_forms as $theform) {
+				$the_list .= '<option data-connection="' 
+				. $theform['id'] . '" value="' 
+				. $theform	['id'] 
+				. '"'.($options['form_id'] == $theform['id'] ? ' selected="selected"' : '').'>'
+				. $theform['data']['form_title'] . '</options>';
+			}
+			$the_list .= '</select></li></ul>';
+			
+			return $the_list;
+		}
 		
 	}
 	
