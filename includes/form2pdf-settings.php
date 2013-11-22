@@ -1,4 +1,9 @@
 <?php
+
+/* Takes care of the settings for form2pdf
+ * 
+ */
+
     interface wp_settings
     {
     	function install();
@@ -32,11 +37,13 @@
 		
 		public function get_settings()
 		{
-
+			
 			// get the saved settings from Wordpress
             $settings = get_option($this->db_opt);
 			// Get all form IDs because they are the keys in our $saved array
-			$all_forms = ninja_forms_get_all_forms();
+			$all_forms = ninja_forms_get_all_forms();			
+			// $settings = array();
+
 			foreach($all_forms as $one_form)
 			{
 				// New form? Add an entry to the settings list
@@ -45,10 +52,9 @@
 					if ($settings) {
 						if (!array_key_exists ($form_id,$settings)) 
 						{
-							$settings[$one_form['id']] = array(
-							'form_id' => $one_form['id'],
+							$settings[$form_id] = array(
 							'convert' => false, 
-							'url_field' => 2, 
+							'url_field' => 0, 
 							'template' =>'', 
 							'form_name' => $one_form['data']['form_title']
 					     	);
@@ -56,11 +62,10 @@
 							update_option($this->db_opt, $settings);
 						}
 					} else {
-						$settings[$one_form['id']] = array(
-							'form_id' => $one_form['id'],
+						$settings[$form_id] = array(
 							'convert' => false, 
-							'url_field' => 5, 
-							'template' =>'template', 
+							'url_field' => 0, 
+							'template' =>'', 
 							'form_name' => $one_form['data']['form_title']
 					     );
 						// write the settings back to the database
@@ -84,14 +89,14 @@
 		public function handle_settings() 
 		{
         	$plugin_dir = trailingslashit( plugin_dir_path(__FILE__) );
-			echo $include_dir;
+			// echo $include_dir;
             include_once($plugin_dir . 'form2pdf-options.php');
         }
 		
 		public function register_settings() {
 			$settings = $this->get_settings();
 			// delete_option( $this->db_opt); 
-			$this->debug_add('BEFORE',$settings);
+
          	register_setting('Form2pdf_Options', $this->db_opt, array($this, 'validate_settings'));
 			
 			add_settings_section(
@@ -113,7 +118,24 @@
 		 
 		public function validate_settings($input) 
 		 {
-		 	$valid = $input;
+		 	$valid = array();
+		 	foreach ($input as $key => $item) {
+				if (!array_key_exists('convert', $item))
+				{
+					$item['convert'] = 'NO';
+				} 
+				$valid[$key] = $item; 
+				if (!array_key_exists('template', $item))
+				{
+					$item['template'] = '';
+				} 
+				if (!array_key_exists('url_field', $item))
+				{
+					$item['url_field'] = 0;
+				} 
+				$valid[$key] = $item; 
+			} 
+			// $valid=array();
 		 	return $valid;
 		 }
 		 
@@ -125,13 +147,34 @@
 		 {
 		 	// Output all formfield - one set per form
 		 	$settings = $this->get_settings();
-			var_dump($settings);
-			foreach($settings as $setting) {
-				echo '<div><br/>' . $setting['form_name'] . '<br/>';
-			echo 'Field where the PDF url is stored:<input type="text" id="url_field" name="' . $this->db_opt. '[' .$setting['form_id']. '][url_field]" value="' . $setting['url_field'] . '" size="25" /></div>';
-			echo 'Template name:<input type="text" id="template" name="' . $this->db_opt. '[' .$setting['form_id']. '][template]" value="' . $setting['template'] . '" size="25" />';
-			//	echo '<input type="checkbox" id="template" name="' . $this->db_opt. '[' .$settings['id']. '][template]" value="' . $settings['template'] . '"';
-			}
+			
+			// $this->debug_add('SETTINGS ON',$settings);
+			foreach($settings as $key => $setting) {
+
+			echo '<div><br/>' . $setting['form_name'] . '<br/>';
+			echo 'Field where the PDF url is stored:<input type="text" id="url_field" name="' 
+			. $this->db_opt 
+			. '[' . $key . '][url_field]" value="' 
+			. $setting['url_field'] 
+			. '" size="25" /></div>';
+			
+			echo 'Template name:<input type="text" id="template" name="' 
+			. $this->db_opt 
+			. '[' . $key . '][template]" value="' 
+			. $setting['template'] 
+			. '" size="25" />';
+			
+			echo '<br/>Convert:<input type="checkbox" id="convert" name="' 
+			. $this->db_opt 
+			. '[' . $key . '][convert]" value="YES"' 
+			. ($setting['convert'] == 'YES' ? 'checked' : '') . '/>';
+						
+			echo '<input type="hidden" id="form_name" name="'
+			. $this->db_opt 
+			. '[' . $key . '][form_name]" value="' 
+			. $setting['form_name'] 
+			. '"/>';		
+			}	
 			
 		 }	
 		 
@@ -140,7 +183,7 @@
             }   
 			 
             function ct_debug() {
-            	// var_dump($this->debug_out);
+
             	foreach( $this->debug_out as $output ){
             		if(gettype($output[0])=='string') {
             			echo '<br/>' . $output[0] . '<br/>';
